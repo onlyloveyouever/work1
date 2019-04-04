@@ -115,12 +115,6 @@ default_hal_config="/home/$jenkins_username/.hal/default"
 
 run_util_script "master/install_halyard.sh" -san "$storage_account_name" -sak "$storage_account_key" -u "$jenkins_username"
 
-# Change front50 port so it doesn't conflict with Jenkins
-front50_settings="$default_hal_config/service-settings/front50.yml"
-sudo -u $jenkins_username mkdir -p $(dirname "$front50_settings")
-sudo -u $jenkins_username touch "$front50_settings"
-echo "port: $front50_port" > "$front50_settings"
-
 # Configure Azure provider for Spinnaker
 echo "$app_key" | hal config provider azure account add my-azure-account \
   --client-id "$app_id" \
@@ -132,22 +126,6 @@ echo "$app_key" | hal config provider azure account add my-azure-account \
   --packer-storage-account "$packer_storage_account" \
   --app-key
 hal config provider azure enable
-
-# Configure Rosco (these params are not supported by Halyard yet)
-rosco_config="$default_hal_config/profiles/rosco-local.yml"
-sudo -u $jenkins_username mkdir -p $(dirname "$rosco_config")
-sudo -u $jenkins_username touch "$rosco_config"
-cat <<EOF > "$rosco_config"
-debianRepository: http://ppa.launchpad.net/openjdk-r/ppa/ubuntu trusty main;http://$vm_fqdn:9999 trusty main
-defaultCloudProviderType: azure
-EOF
-
-# Configure Jenkins for Spinnaker
-echo "$jenkins_password" | hal config ci jenkins master add Jenkins \
-    --address "http://localhost:8080" \
-    --username "$jenkins_username" \
-    --password
-hal config ci jenkins enable
 
 # Deploy Spinnaker to local VM
 sudo hal deploy apply
